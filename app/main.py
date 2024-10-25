@@ -1,19 +1,11 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
-from sqlalchemy.orm import Session
-from .database import SessionLocal, engine
-from . import models, utils
-import csv
+from fastapi import FastAPI
 
-models.Base.metadata.create_all(bind=engine)
+from routes import init_routes
+
 app = FastAPI()
 
-@app.post("/importar-clientes/")
-async def importar_clientes(file: UploadFile = File(...), db: Session = SessionLocal()):
-    # Valida e processa o CSV de clientes
-    try:
-        utils.importar_clientes_csv(file, db)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Erro ao importar clientes: {str(e)}")
-    return {"message": "Clientes importados com sucesso"}
+init_routes(app)
 
-# Repita esse processo para produtos e estoque
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

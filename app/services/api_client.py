@@ -2,7 +2,6 @@ import requests
 
 from settings.config import Config
 
-
 class APIClient:
     def __init__(self):
         self.api_url = Config.FLASK_API_URL

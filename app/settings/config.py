@@ -1,5 +1,2 @@
 class Config:
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///db/gestao_estoque.db'
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-
-config = Config()
+    FLASK_API_URL = "http://127.0.0.1:5000/cadastrar/cliente"

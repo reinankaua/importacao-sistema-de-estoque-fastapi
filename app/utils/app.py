@@ -1,11 +1,11 @@
 from flask import Flask, render_template, redirect, url_for, request
-from flask_sqlalchemy import SQLAlchemy
+from flask_sql import SQL
 from .forms import ClienteForm
 from .models import db, Cliente
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://usuario:senha@localhost/nome_do_banco'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQL_DATABASE_URI'] = 'mysql://usuario:senha@localhost/nome_do_banco'
+app.config['SQL_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'your_secret_key'
 
 db.init_app(app)

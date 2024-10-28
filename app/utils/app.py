@@ -1,52 +1,45 @@
-from flask import Flask, render_template, redirect, url_for, request
-from flask_sql import SQL
-from .forms import ClienteForm
-from .models import db, Cliente
+from fastapi import FastAPI, Depends, HTTPException
+from sql import Session
+from . import crud, models, schemas
+from .database import SessionLocal, engine
 
-app = Flask(__name__)
-app.config['SQL_DATABASE_URI'] = 'mysql://usuario:senha@localhost/nome_do_banco'
-app.config['SQL_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'your_secret_key'
+models.Base.metadata.create_all(bind=engine)
 
-db.init_app(app)
+app = FastAPI()
 
-@app.route('/')
-def index():
-    return redirect(url_for('listar_clientes'))
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-@app.route('/clientes/', methods=['GET'])
-def listar_clientes():
-    clientes = Cliente.query.all()
-    return render_template('clientes.html', clientes=clientes)
+@app.post("/clientes/", response_model=schemas.Cliente)
+def criar_cliente(cliente: schemas.ClienteCreate, db: Session = Depends(get_db)):
+    return crud.create_cliente(db=db, cliente=cliente)
 
-@app.route('/cliente/novo', methods=['GET', 'POST'])
-def adicionar_cliente():
-    form = ClienteForm()
-    if form.validate_on_submit():
-        cliente = Cliente(nome=form.nome.data, endereco=form.endereco.data, contato=form.contato.data)
-        db.session.add(cliente)
-        db.session.commit()
-        return redirect(url_for('listar_clientes'))
-    return render_template('cliente_form.html', form=form)
+@app.get("/clientes/", response_model=list[schemas.Cliente])
+def listar_clientes(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    clientes = crud.get_clientes(db, skip=skip, limit=limit)
+    return clientes
 
-@app.route('/cliente/<int:id>/editar', methods=['GET', 'POST'])
-def editar_cliente(id):
-    cliente = Cliente.query.get_or_404(id)
-    form = ClienteForm(obj=cliente)
-    if form.validate_on_submit():
-        cliente.nome = form.nome.data
-        cliente.endereco = form.endereco.data
-        cliente.contato = form.contato.data
-        db.session.commit()
-        return redirect(url_for('listar_clientes'))
-    return render_template('cliente_form.html', form=form, cliente=cliente)
+@app.get("/clientes/{cliente_id}", response_model=schemas.Cliente)
+def ler_cliente(cliente_id: int, db: Session = Depends(get_db)):
+    db_cliente = crud.get_cliente(db, cliente_id=cliente_id)
+    if db_cliente is None:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    return db_cliente
 
-@app.route('/cliente/<int:id>/deletar', methods=['POST'])
-def deletar_cliente(id):
-    cliente = Cliente.query.get_or_404(id)
-    db.session.delete(cliente)
-    db.session.commit()
-    return redirect(url_for('listar_clientes'))
+@app.put("/clientes/{cliente_id}", response_model=schemas.Cliente)
+def atualizar_cliente(cliente_id: int, cliente: schemas.ClienteCreate, db: Session = Depends(get_db)):
+    db_cliente = crud.update_cliente(db, cliente_id=cliente_id, cliente=cliente)
+    if db_cliente is None:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    return db_cliente
 
-if __name__ == '__main__':
-    app.run(debug=True)
+@app.delete("/clientes/{cliente_id}", response_model=schemas.Cliente)
+def deletar_cliente(cliente_id: int, db: Session = Depends(get_db)):
+    db_cliente = crud.delete_cliente(db, cliente_id=cliente_id)
+    if db_cliente is None:
+        raise HTTPException(status_code=404, detail="Cliente não encontrado")
+    return db_cliente
